@@ -1,0 +1,71 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2b1d4a"><link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon.svg"><link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Next One</title>
+<style>
+:root{--bg:#2b1d4a;--card:#3d2b63;--txt:#ffe9b8;--acc:#ffc94d;--go:#ff8a3d;--calm:#7fd6c2;--crisis:#ff6f61}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--txt);font:600 24px/1.4 system-ui,sans-serif;padding-bottom:110px}
+h1{font-size:44px;margin:16px 0}h2{font-size:32px;margin:10px 0}main{padding:16px;max-width:720px;margin:auto}
+button,a.btn{display:block;width:100%;border:0;border-radius:22px;padding:22px;margin:12px 0;font:800 28px system-ui;color:var(--bg);background:var(--acc);text-align:center;text-decoration:none;cursor:pointer}
+.big{font-size:44px;padding:48px 20px;background:var(--go);min-height:34vh}.calm{background:var(--calm)}.ghost{background:var(--card);color:var(--txt)}
+.card{background:var(--card);border-radius:22px;padding:16px;margin:12px 0}.row{display:flex;gap:10px}.row button{margin:6px 0;padding:14px;font-size:22px}
+.bar{height:22px;background:var(--bg);border-radius:11px;overflow:hidden}.bar i{display:block;height:100%;background:var(--calm)}
+input{width:100%;font:600 24px system-ui;padding:14px;border-radius:14px;border:3px solid var(--acc);background:var(--bg);color:var(--txt);margin:6px 0}
+#crisis{position:fixed;left:0;right:0;bottom:0;display:flex;gap:8px;padding:10px;background:#5a1f3a;z-index:9}
+#crisis a{flex:1;margin:0;padding:18px;background:var(--crisis);font-size:24px}
+.full{position:fixed;inset:0;bottom:96px;background:var(--bg);padding:20px;overflow:auto;display:flex;flex-direction:column;justify-content:center;text-align:center}
+.step{font-size:40px;line-height:1.3;margin:20px 0}.timer{font-size:72px;color:var(--acc)}
+.orb{width:180px;height:180px;border-radius:50%;background:var(--calm);margin:10px auto;transform:scale(.5);transition:transform 4s ease-in-out}
+.hide{display:none}
+</style></head><body>
+<main id="app"></main>
+<div id="crisis"><a class="btn" href="tel:988">📞 Call 988</a><a class="btn" href="sms:988">💬 Text 988</a></div>
+<script>
+const MASTER=21,KEY='nextone.v1';
+const DEF=[
+{id:'breath',name:'Paced breathing 4-6',steps:['Breathe in through your nose for 4.','Breathe out slow through your mouth for 6.','Follow the circle. Just keep going.'],secs:120,orb:true},
+{id:'ground',name:'5-4-3-2-1 grounding',steps:['Name 5 things you can see.','Touch 4 things. Feel them.','Listen for 3 sounds.','Find 2 smells.','Name 1 taste.'],secs:0},
+{id:'cold',name:'Cold water on your face',steps:['Go to a sink.','Splash cold water on your face. Hold your breath 15 seconds.','Do it again.'],secs:30},
+{id:'call',name:'Call my person',steps:['Call your person now. You do not have to explain.'],secs:0,call:true},
+{id:'walk',name:'Walk outside',steps:['Put on your shoes.','Step outside.','Walk. Look at the sky.'],secs:300},
+{id:'ice',name:'Hold ice',steps:['Get ice from the freezer.','Hold it in your hand.','Feel the cold. Let it be the only thing.'],secs:60},
+{id:'name',name:'Name it to tame it',steps:['Say out loud what you feel.','"I feel ___." Just name it.','Naming it makes it smaller.'],secs:0},
+{id:'drum',name:'Drum a four count',steps:['Drum on your legs.','One. Two. Three. Eve.','Boom. Boom.','Again. Keep the beat.'],secs:60}];
+let S=JSON.parse(localStorage.getItem(KEY)||'null')||{skills:DEF.map(s=>({...s,reps:0})),person:{name:'',num:''},last:'',days:0};
+DEF.forEach(d=>{if(!S.skills.find(s=>s.id===d.id))S.skills.push({...d,reps:0})});
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S)),$=id=>document.getElementById(id),app=$('app');
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let tick=null,orbT=null;function stop(){clearInterval(tick);clearInterval(orbT)}
+function home(){stop();app.innerHTML=`<h1>Next One</h1>
+<button class="big" onclick="panic(0)">I need help now</button>
+<button class="calm" onclick="drill()">Practice today (2 min)</button>
+<button class="ghost" onclick="stack()">My skills</button>
+<p>Practice days: ${S.days}</p>`}
+function skillScreen(s,{onNext,onDone,nextLabel,doneLabel}){stop();let i=0;
+ const d=document.createElement('div');d.className='full';app.innerHTML='';app.appendChild(d);
+ const draw=()=>{const call=s.call&&S.person.num?`<a class="btn calm" href="tel:${esc(S.person.num)}">Call ${esc(S.person.name||'my person')}</a>`:(s.call?'<p>Add your person in My skills.</p>':'');
+  d.innerHTML=`<h2>${esc(s.name)}</h2>${s.orb?'<div class="orb" id="orb"></div>':''}<div class="step">${esc(s.steps[i])}</div>${call}
+  ${s.secs?`<div class="timer" id="t"></div>`:''}
+  ${i<s.steps.length-1?`<button class="ghost" id="more">Next step</button>`:''}
+  <button class="calm" id="done">${doneLabel}</button><button class="big" style="min-height:0;padding:30px" id="nx">${nextLabel}</button>`;
+  $('done').onclick=onDone;$('nx').onclick=onNext;if($('more'))$('more').onclick=()=>{i++;draw()}};
+ draw();if(s.secs){let r=s.secs;const f=()=>{const t=$('t');if(t)t.textContent=Math.floor(r/60)+':'+String(r%60).padStart(2,'0');if(r--<=0)clearInterval(tick)};f();tick=setInterval(f,1000)}
+ if(s.orb){let up=true;const o=()=>{const e=$('orb');if(e){e.style.transitionDuration=(up?4:6)+'s';e.style.transform=up?'scale(1)':'scale(.5)';
+  const el=document.querySelector('.step');if(el)el.textContent=up?'Breathe in... 4':'Breathe out... 6'}up=!up;clearInterval(orbT);orbT=setTimeout(o,(up?6:4)*1000)};setTimeout(o,100)}}
+function panic(n){const L=S.skills;const s=L[n%L.length];
+ skillScreen(s,{nextLabel:'Next one',doneLabel:'This helped',onNext:()=>panic(n+1),onDone:goodDay})}
+function goodDay(){stop();app.innerHTML=`<div class="full"><h1>You did it.</h1><div class="step">You pulled a skill and it worked.<br>We had a good day.</div><button class="calm" onclick="home()">Home</button></div>`}
+function drill(skip){const L=S.skills;const pool=skip?L.filter(x=>x!==skip):L;const s=[...pool].sort((a,b)=>a.reps-b.reps)[0];
+ skillScreen(s,{nextLabel:'Skip to another',doneLabel:'I practiced this',onNext:()=>drill(s),
+  onDone:()=>{s.reps++;const t=new Date().toDateString();if(S.last!==t){S.days++;S.last=t}save();stop();
+   app.innerHTML=`<div class="full"><h1>Rep logged.</h1><div class="step">${esc(s.name)}: ${s.reps} reps${s.reps>=MASTER?' — mastered!':''}</div><button class="calm" onclick="home()">Home</button></div>`}})}
+function stack(){stop();app.innerHTML=`<h1>My skills</h1><p>Top one comes first in a panic. Practice ${MASTER} times to master.</p>
+<div class="card"><h2>My person</h2><input id="pn" placeholder="Name" value="${esc(S.person.name)}"><input id="pp" type="tel" placeholder="Phone number" value="${esc(S.person.num)}"><button onclick="S.person={name:$('pn').value,num:$('pp').value.replace(/[^0-9+]/g,'')};save();stack()">Save person</button></div>
+${S.skills.map((s,i)=>`<div class="card"><h2>${i+1}. ${esc(s.name)}${s.reps>=MASTER?' ★':''}</h2><div class="bar"><i style="width:${Math.min(100,s.reps/MASTER*100)}%"></i></div><p>${s.reps} / ${MASTER} reps</p>
+<div class="row"><button class="ghost" onclick="mv(${i},-1)">Up</button><button class="ghost" onclick="mv(${i},1)">Down</button>${s.custom?`<button class="ghost" onclick="S.skills.splice(${i},1);save();stack()">Remove</button>`:''}</div></div>`).join('')}
+<div class="card"><h2>Add my own skill</h2><input id="nn" placeholder="Name"><input id="ns" placeholder="One instruction"><button onclick="if($('nn').value){S.skills.push({id:'c'+Date.now(),name:$('nn').value,steps:[$('ns').value||$('nn').value],secs:0,reps:0,custom:true});save();stack()}">Add</button></div>
+<button class="calm" onclick="home()">Home</button>`}
+function mv(i,d){const j=i+d;if(j<0||j>=S.skills.length)return;[S.skills[i],S.skills[j]]=[S.skills[j],S.skills[i]];save();stack()}
+save();home();if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
